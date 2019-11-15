@@ -3,91 +3,131 @@ import {
   withScriptjs,
   withGoogleMap,
   GoogleMap,
-  Marker
+  Marker,
+  Polygon,
+  EditControl 
 } from "react-google-maps";
+import axios from 'axios';
 
 const CustomSkinMap = withScriptjs(
-  withGoogleMap(() => (
+  withGoogleMap((props) => (
     <GoogleMap
       defaultZoom={13}
-      defaultCenter={{ lat: 40.748817, lng: -73.985428 }}
-      defaultOptions={{
-        scrollwheel: false,
-        zoomControl: true,
-        styles: [
-          {
-            featureType: "water",
-            stylers: [
-              { saturation: 43 },
-              { lightness: -11 },
-              { hue: "#0088ff" }
-            ]
-          },
-          {
-            featureType: "road",
-            elementType: "geometry.fill",
-            stylers: [
-              { hue: "#ff0000" },
-              { saturation: -100 },
-              { lightness: 99 }
-            ]
-          },
-          {
-            featureType: "road",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#808080" }, { lightness: 54 }]
-          },
-          {
-            featureType: "landscape.man_made",
-            elementType: "geometry.fill",
-            stylers: [{ color: "#ece2d9" }]
-          },
-          {
-            featureType: "poi.park",
-            elementType: "geometry.fill",
-            stylers: [{ color: "#ccdca1" }]
-          },
-          {
-            featureType: "road",
-            elementType: "labels.text.fill",
-            stylers: [{ color: "#767676" }]
-          },
-          {
-            featureType: "road",
-            elementType: "labels.text.stroke",
-            stylers: [{ color: "#ffffff" }]
-          },
-          { featureType: "poi", stylers: [{ visibility: "off" }] },
-          {
-            featureType: "landscape.natural",
-            elementType: "geometry.fill",
-            stylers: [{ visibility: "on" }, { color: "#b8cb93" }]
-          },
-          { featureType: "poi.park", stylers: [{ visibility: "on" }] },
-          {
-            featureType: "poi.sports_complex",
-            stylers: [{ visibility: "on" }]
-          },
-          { featureType: "poi.medical", stylers: [{ visibility: "on" }] },
-          {
-            featureType: "poi.business",
-            stylers: [{ visibility: "simplified" }]
-          }
-        ]
-      }}
+      defaultCenter={{lat: 33.641529921065796, lng: -99.87394831347444}}
     >
-      <Marker position={{ lat: 40.748817, lng: -73.985428 }} />
+      {props.polys}
     </GoogleMap>
   ))
 );
 
-export default function Maps() {
-  return (
-    <CustomSkinMap
-      googleMapURL="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE"
-      loadingElement={<div style={{ height: `100%` }} />}
-      containerElement={<div style={{ height: `100vh` }} />}
-      mapElement={<div style={{ height: `100%` }} />}
-    />
-  );
+
+const defaultState = {
+  paths: [],
+  isFetching: false,
+  error: null
 }
+class Maps extends React.Component {
+
+  axiosSource = null;
+
+  state = defaultState;
+
+  _poly = React.createRef();
+
+  reducer(state, action) {
+    switch(action.type) {
+      case "fetch":
+        return {
+          ...state,
+          isFetching: true
+        }
+      case "fetched":
+        return {
+          ...state,
+          isFetching: false,
+          paths: [...state.paths, ...action.payload]
+        }
+      case "error":
+        return {
+          ...state,
+          isFetching: false,
+          error: action.payload
+        }
+    }
+  }
+
+  dispatch(action) {
+    this.setState(previousState => this.reducer(previousState, action));
+  }
+  
+  async cancel() {
+    if (this.axiosSource)
+      await this.axiosSource.cancel()
+  }
+
+  async getPaths() {
+    await this.cancel()
+    this.axiosSource = axios.CancelToken.source();
+    axios.get("http://localhost:5000/perimeter/1/1", {
+        cancelToken: this.axiosSource.token
+      })
+      .then(response => {
+        this.dispatch({ type: "fetched", payload: response.data });
+        console.log(response.data)
+      })
+      .catch(error => {
+        this.dispatch({ type: "error", payload: error });
+      });
+  }
+
+  async updatePaths(newPath) {
+    await this.cancel()
+    this.axiosSource = axios.CancelToken.source();
+    axios.post("http://localhost:5000/perimeter/update/1/0", newPath, {
+        cancelToken: this.axiosSource.token
+      })
+      .catch(error => {
+        this.dispatch({ type: "error", payload: error });
+      });
+  }
+
+  componentDidMount() {
+    this.getPaths();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.url !== this.props.url) {
+      this.getPaths();
+    }
+  }
+
+  componentWillUnmount() {
+    this.cancel();
+  }
+
+  onMouseUp() {
+    let newPath = this._poly.current.getPath().g;
+    this.updatePaths(newPath)
+  }
+
+  render() {
+    return (
+      <CustomSkinMap
+        googleMapURL="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmGGnInHfIFSOo4bgA4e-fvRU3TewyqdM"
+        loadingElement={<div style={{ height: `100%` }} />}
+        containerElement={<div style={{ height: `100vh` }} />}
+        mapElement={<div style={{ height: `100%` }} />}
+        polys={[
+        <Polygon path={this.state.paths[0]} 
+          editable={true}
+          draggable={true}
+          onMouseUp={this.onMouseUp.bind(this)}
+          ref={this._poly}
+        />]}
+      >
+      </CustomSkinMap>
+    );
+  }
+}
+
+export default Maps
