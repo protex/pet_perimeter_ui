@@ -1,30 +1,17 @@
 import React from "react";
 import {
-  withScriptjs,
-  withGoogleMap,
-  GoogleMap,
   Marker,
-  Polygon,
-  EditControl 
+  Polygon
 } from "react-google-maps";
 import axios from 'axios';
-
-const CustomSkinMap = withScriptjs(
-  withGoogleMap((props) => (
-    <GoogleMap
-      defaultZoom={13}
-      defaultCenter={{lat: 33.641529921065796, lng: -99.87394831347444}}
-    >
-      {props.polys}
-    </GoogleMap>
-  ))
-);
-
+import CustomSkinMap from './CustomSkinMap.js'
+import { getUserDevicePath } from 'assets/utils/getUserDevicePath.js'
 
 const defaultState = {
   paths: [],
   isFetching: false,
-  error: null
+  error: null,
+  lastLocation: {}
 }
 class Maps extends React.Component {
 
@@ -33,6 +20,8 @@ class Maps extends React.Component {
   state = defaultState;
 
   _poly = React.createRef();
+
+  autoUpdateLocation = null;
 
   reducer(state, action) {
     switch(action.type) {
@@ -45,7 +34,8 @@ class Maps extends React.Component {
         return {
           ...state,
           isFetching: false,
-          paths: [...state.paths, ...action.payload]
+          lastLocation: action.payload.lastLocation || {...this.state.lastLocation},
+          paths: [...state.paths, ...action.payload.paths || []]
         }
       case "error":
         return {
@@ -53,10 +43,13 @@ class Maps extends React.Component {
           isFetching: false,
           error: action.payload
         }
+      default:
+        return {...state}
     }
   }
 
   dispatch(action) {
+    console.log(action)
     this.setState(previousState => this.reducer(previousState, action));
   }
   
@@ -68,31 +61,49 @@ class Maps extends React.Component {
   async getPaths() {
     await this.cancel()
     this.axiosSource = axios.CancelToken.source();
-    axios.get("http://localhost:5000/perimeter/1/1", {
+    try {
+      let paths = await axios.get("http://localhost:5000/perimeter/1/1", {
+          cancelToken: this.axiosSource.token
+      });
+      paths = paths.data;
+      this.dispatch({type: "fetched", payload: {paths}})
+    } catch (err) {
+      this.dispatch({type: "error", payload: err});
+    }
+  }
+
+  async getCurrentLocation() {
+    await this.cancel()
+    this.axiosSource = axios.CancelToken.source();
+    try {
+      let locationData = await axios.get("http://localhost:5000/location" + getUserDevicePath(), {
         cancelToken: this.axiosSource.token
       })
-      .then(response => {
-        this.dispatch({ type: "fetched", payload: response.data });
-        console.log(response.data)
-      })
-      .catch(error => {
-        this.dispatch({ type: "error", payload: error });
-      });
+      let lastLocation = locationData.data[0];
+      this.dispatch({type: "fetched", payload: {lastLocation}})
+    } catch (err) {
+      this.dispatch({type: "error", payload: err});
+    }
   }
 
   async updatePaths(newPath) {
     await this.cancel()
     this.axiosSource = axios.CancelToken.source();
-    axios.post("http://localhost:5000/perimeter/update/1/0", newPath, {
+    axios.post("http://localhost:5000/perimeter/update/" + getUserDevicePath().split("/")[1] + "/0", newPath, {
         cancelToken: this.axiosSource.token
       })
       .catch(error => {
         this.dispatch({ type: "error", payload: error });
+        console.log(error)
       });
   }
 
   componentDidMount() {
     this.getPaths();
+    this.getCurrentLocation();
+    this.autoUpdateLocation = window.setInterval(() => {
+      this.getCurrentLocation();
+    }, 5000);
   }
 
   componentDidUpdate(prevProps) {
@@ -103,6 +114,7 @@ class Maps extends React.Component {
 
   componentWillUnmount() {
     this.cancel();
+    clearInterval(this.autoUpdateLocation);
   }
 
   onMouseUp() {
@@ -110,10 +122,14 @@ class Maps extends React.Component {
     this.updatePaths(newPath)
   }
 
+  deletePolygon() {
+    this.updatePaths([]);
+  }
+
   render() {
     return (
       <CustomSkinMap
-        googleMapURL="https://maps.googleapis.com/maps/api/js?key=AIzaSyAmGGnInHfIFSOo4bgA4e-fvRU3TewyqdM"
+        googleMapURL={`https://maps.googleapis.com/maps/api/js?libraries=visualization,drawing&key=${process.env.REACT_APP_MAPS_API_KEY}`}
         loadingElement={<div style={{ height: `100%` }} />}
         containerElement={<div style={{ height: `100vh` }} />}
         mapElement={<div style={{ height: `100%` }} />}
@@ -122,10 +138,14 @@ class Maps extends React.Component {
           editable={true}
           draggable={true}
           onMouseUp={this.onMouseUp.bind(this)}
+          onDblClick={this.deletePolygon.bind(this)}
           ref={this._poly}
+          key={0}
+          visible={(this.state.paths[0] || []) !== [] }
         />]}
-      >
-      </CustomSkinMap>
+        lastLocationMarker={<Marker position={{"lat": parseFloat(this.state.lastLocation.lat), "lng": parseFloat(this.state.lastLocation.lng)}} />}
+        drawPoly={this.drawPoly}
+      />
     );
   }
 }

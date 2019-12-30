@@ -6,7 +6,6 @@ import "perfect-scrollbar/css/perfect-scrollbar.css";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 // core components
-import Navbar from "components/Navbars/Navbar.js";
 import Footer from "components/Footer/Footer.js";
 import Sidebar from "components/Sidebar/Sidebar.js";
 
@@ -45,28 +44,14 @@ export default function Admin({ ...rest }) {
   // ref to help us initialize PerfectScrollbar on windows devices
   const mainPanel = React.createRef();
   // states and functions
-  const [image, setImage] = React.useState(bgImage);
-  const [color, setColor] = React.useState("blue");
-  const [fixedClasses, setFixedClasses] = React.useState("dropdown show");
+  const [image] = React.useState(bgImage);
+  const [color] = React.useState("blue");
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const handleImageClick = image => {
-    setImage(image);
-  };
-  const handleColorClick = color => {
-    setColor(color);
-  };
-  const handleFixedClick = () => {
-    if (fixedClasses === "dropdown") {
-      setFixedClasses("dropdown show");
-    } else {
-      setFixedClasses("dropdown");
-    }
-  };
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
   const getRoute = () => {
-    return window.location.pathname !== "/admin/maps";
+    return !(/\/admin\/(.+?)map/.test(window.location.pathname));
   };
   const resizeFunction = () => {
     if (window.innerWidth >= 960) {
@@ -95,7 +80,7 @@ export default function Admin({ ...rest }) {
     <div className={classes.wrapper}>
       <Sidebar
         routes={routes}
-        logoText={"Creative Tim"}
+        logoText={"Pet Perimeter"}
         logo={logo}
         image={image}
         handleDrawerToggle={handleDrawerToggle}
@@ -104,11 +89,6 @@ export default function Admin({ ...rest }) {
         {...rest}
       />
       <div className={classes.mainPanel} ref={mainPanel}>
-        <Navbar
-          routes={routes}
-          handleDrawerToggle={handleDrawerToggle}
-          {...rest}
-        />
         {/* On the /maps route we want the map to be on full screen - this is not possible if the content and conatiner classes are present because they have some paddings which would make the map smaller */}
         {getRoute() ? (
           <div className={classes.content}>

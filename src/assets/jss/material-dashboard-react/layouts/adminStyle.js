@@ -18,19 +18,14 @@ const appStyle = theme => ({
     position: "relative",
     float: "right",
     ...transition,
-    maxHeight: "100%",
+    maxHeight: "100vh",
     width: "100%",
     overflowScrolling: "touch"
   },
   content: {
-    marginTop: "70px",
-    padding: "30px 15px",
     minHeight: "calc(100vh - 123px)"
   },
   container,
-  map: {
-    marginTop: "70px"
-  }
 });
 
 export default appStyle;

@@ -18,10 +18,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { createBrowserHistory } from "history";
-import { Router, Route, Switch, Redirect } from "react-router-dom";
+import { Router, Route, Switch } from "react-router-dom";
 
 // core components
 import Admin from "layouts/Admin.js";
+import Login from "layouts/Login.js";
 
 import "assets/css/material-dashboard-react.css?v=1.8.0";
 
@@ -31,7 +32,7 @@ ReactDOM.render(
   <Router history={hist}>
     <Switch>
       <Route path="/admin" component={Admin} />
-      <Redirect from="/" to="/admin/dashboard" />
+      <Route path="/" component={Login} />
     </Switch>
   </Router>,
   document.getElementById("root")

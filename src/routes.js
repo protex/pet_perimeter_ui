@@ -17,33 +17,24 @@
 */
 // @material-ui/icons
 import Dashboard from "@material-ui/icons/Dashboard";
-import Person from "@material-ui/icons/Person";
 import LocationOn from "@material-ui/icons/LocationOn";
 // core components/views for Admin layout
-import DashboardPage from "views/Dashboard/Dashboard.js";
-import UserProfile from "views/UserProfile/UserProfile.js";
-import Maps from "views/Maps/Maps.js";
+import PerimeterMap from "views/Maps/PerimeterMap.js";
+import HeatMap from "views/Maps/HeatMap.js";
 
 const dashboardRoutes = [
   {
-    path: "/dashboard",
-    name: "Dashboard",
+    path: "/heatmap",
+    name: "Heatmap",
     icon: Dashboard,
-    component: DashboardPage,
+    component: HeatMap,
     layout: "/admin"
   },
   {
-    path: "/user",
-    name: "User Profile",
-    icon: Person,
-    component: UserProfile,
-    layout: "/admin"
-  },
-  {
-    path: "/maps",
-    name: "Maps",
+    path: "/perimetermap",
+    name: "Perimeter Map",
     icon: LocationOn,
-    component: Maps,
+    component: PerimeterMap,
     layout: "/admin"
   },
 ];

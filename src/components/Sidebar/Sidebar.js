@@ -14,6 +14,7 @@ import Icon from "@material-ui/core/Icon";
 // core components
 import AdminNavbarLinks from "components/Navbars/AdminNavbarLinks.js";
 import RTLNavbarLinks from "components/Navbars/RTLNavbarLinks.js";
+import {getUserDevicePath} from "assets/utils/getUserDevicePath.js"
 
 import styles from "assets/jss/material-dashboard-react/components/sidebarStyle.js";
 
@@ -25,6 +26,7 @@ export default function Sidebar(props) {
   function activeRoute(routeName) {
     return window.location.href.indexOf(routeName) > -1 ? true : false;
   }
+
   const { color, logo, image, logoText, routes } = props;
   var links = (
     <List className={classes.list}>
@@ -46,7 +48,7 @@ export default function Sidebar(props) {
         });
         return (
           <NavLink
-            to={prop.layout + prop.path}
+            to={prop.layout + prop.path + getUserDevicePath()}
             className={activePro + classes.item}
             activeClassName="active"
             key={key}
@@ -160,4 +162,4 @@ Sidebar.propTypes = {
   logoText: PropTypes.string,
   routes: PropTypes.arrayOf(PropTypes.object),
   open: PropTypes.bool
-};
+}
